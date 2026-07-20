@@ -1,4 +1,4 @@
-# Justice Launcher — Source (v2.2.7)
+# Justice Launcher Source (v2.2.7)
 
 The native C++/WebView2 launcher for the Justice Client.
 
