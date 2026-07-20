@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Justice Launcher — Update</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#08070d; --panel:#0e0d16; --line:rgba(255,255,255,.07);
+    --t1:#f2f3f7; --t2:#a7abbb; --t3:#6b7080;
+    --accent:#7c3aed; --accent2:#a855f7; --accent-soft:rgba(124,58,237,.16);
+    --green:#34d399; --red:#f87171;
+  }
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+    background:
+      radial-gradient(600px 300px at 50% -10%, rgba(124,58,237,.16), transparent 70%),
+      var(--bg);
+    color:var(--t1); user-select:none; -webkit-font-smoothing:antialiased;
+  }
+
+  #titlebar{
+    position:fixed; inset:0 0 auto 0; height:42px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 8px 0 16px; -webkit-app-region:drag; z-index:10;
+  }
+  .brand{display:flex; align-items:center; gap:10px}
+  .brand .mk{
+    width:20px;height:20px;border-radius:6px;
+    background:linear-gradient(140deg,var(--accent2),var(--accent));
+    box-shadow:0 2px 10px rgba(124,58,237,.5);
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:900;color:#fff;
+  }
+  .brand span{font-size:11.5px;font-weight:700;letter-spacing:.16em;color:var(--t2)}
+  .wc{display:flex;gap:2px;-webkit-app-region:no-drag}
+  .wc button{
+    width:30px;height:28px;border:0;background:transparent;color:var(--t3);
+    border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.14s;
+  }
+  .wc button:hover{background:rgba(255,255,255,.07);color:var(--t1)}
+  .wc button.close:hover{background:rgba(248,113,113,.16);color:var(--red)}
+
+  .stage{
+    height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:52px 40px 40px; text-align:center;
+  }
+
+  .mark{position:relative;width:96px;height:96px;margin-bottom:26px}
+  .mark .ring{
+    position:absolute;inset:0;border-radius:24px;
+    border:1px solid var(--line);
+  }
+  .mark .glow{
+    position:absolute;inset:-14px;border-radius:32px;
+    background:radial-gradient(circle, rgba(124,58,237,.35), transparent 65%);
+    filter:blur(6px);
+  }
+  .mark .core{
+    position:absolute;inset:0;border-radius:24px;
+    background:linear-gradient(150deg,#221436,#0f0b1c);
+    border:1px solid rgba(124,58,237,.4);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .mark .core svg{width:42px;height:42px;color:var(--accent2)}
+
+  .mark .spin{
+    position:absolute;inset:-3px;border-radius:26px;
+    background:conic-gradient(from 0deg, transparent 0 68%, var(--accent2) 82%, transparent 100%);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+            mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    animation:spin 1.15s linear infinite; opacity:0; transition:opacity .3s;
+  }
+  .state-checking .spin, .state-downloading .spin, .state-installing .spin{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  h1{font-size:20px;font-weight:750;letter-spacing:-.01em;margin-bottom:8px}
+  .sub{font-size:13.5px;color:var(--t2);line-height:1.5;max-width:340px;margin-bottom:22px}
+
+  .vers{display:none;align-items:center;gap:10px;margin-bottom:26px}
+  .vtag{
+    font-size:12px;font-weight:650;padding:5px 11px;border-radius:8px;
+    background:var(--panel);border:1px solid var(--line);color:var(--t2);font-variant-numeric:tabular-nums;
+  }
+  .vtag.new{background:var(--accent-soft);border-color:rgba(124,58,237,.4);color:#d6bcfa}
+  .varr{color:var(--t3)}
+  .varr svg{width:16px;height:16px;display:block}
+
+  .prog{width:100%;max-width:360px;display:flex;flex-direction:column;gap:9px}
+  .bar{height:7px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;position:relative}
+  .fill{
+    height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    box-shadow:0 0 14px rgba(124,58,237,.55);transition:width .25s ease;
+  }
+  .fill.indet{width:38% !important;animation:slide 1.25s ease-in-out infinite}
+  @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+  .meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+  .pct{color:var(--t1);font-weight:650}
+
+  .err{display:none;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:360px}
+  .err .msg{font-size:13px;color:var(--red);line-height:1.5}
+  .retry{
+    padding:10px 22px;border-radius:10px;border:1px solid rgba(124,58,237,.5);
+    background:var(--accent-soft);color:#e9d5ff;font-family:inherit;font-size:13px;font-weight:650;cursor:pointer;transition:.15s;
+  }
+  .retry:hover{background:rgba(124,58,237,.28);transform:translateY(-1px)}
+
+  .prog, .err{display:none}
+  .state-checking .prog, .state-downloading .prog, .state-installing .prog{display:flex}
+  .state-error .err{display:flex}
+  .state-error .prog{display:none}
+</style>
+</head>
+<body>
+  <div id="titlebar">
+    <div class="brand"><div class="mk">J</div><span>JUSTICE LAUNCHER</span></div>
+    <div class="wc">
+      <button id="min" title="Minimize"><svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1.2" rx="0.6" fill="currentColor"/></svg></button>
+      <button class="close" id="close" title="Close"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+    </div>
+  </div>
+
+  <div class="stage" id="root">
+    <div class="mark">
+      <div class="glow"></div>
+      <div class="ring"></div>
+      <div class="spin"></div>
+      <div class="core" id="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+      </div>
+    </div>
+
+    <h1 id="title">Checking for updates</h1>
+    <p class="sub" id="sub">Making sure you have the latest version.</p>
+
+    <div class="vers" id="vers">
+      <div class="vtag" id="vold">v2.1.2</div>
+      <div class="varr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="vtag new" id="vnew">v2.1.3</div>
+    </div>
+
+    <div class="prog" id="prog">
+      <div class="bar"><div class="fill indet" id="fill"></div></div>
+      <div class="meta"><span id="status">Connecting…</span><span class="pct" id="pct"></span></div>
+    </div>
+
+    <div class="err" id="err">
+      <div class="msg" id="errmsg"></div>
+      <button class="retry" id="retry">Try again</button>
+    </div>
+  </div>
+
+<script>
+  const { ipcRenderer } = require('electron');
+  const $ = id => document.getElementById(id);
+  const root = $('root'), title = $('title'), sub = $('sub'), fill = $('fill');
+  const status = $('status'), pct = $('pct'), vers = $('vers'), vold = $('vold'), vnew = $('vnew');
+  const err = $('err'), errmsg = $('errmsg'), mark = $('mark');
+
+  const ICON = {
+    down:  '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/>',
+    check: '<path d="M20 6L9 17l-5-5"/>',
+    x:     '<path d="M18 6L6 18M6 6l12 12"/>',
+  };
+  const setIcon = k => mark.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+ICON[k]+'</svg>';
+  const setState = s => root.className = 'stage state-' + s;
+
+  $('min').onclick = () => ipcRenderer.send('window-minimize');
+  $('close').onclick = () => ipcRenderer.send('window-close');
+  $('retry').onclick = () => { setState('checking'); ipcRenderer.send('retry-update'); };
+
+  ipcRenderer.on('update-checking', () => {
+    setState('checking'); setIcon('down');
+    title.textContent = 'Checking for updates';
+    sub.textContent = 'Making sure you have the latest version.';
+    status.textContent = 'Connecting…'; pct.textContent = '';
+    fill.className = 'fill indet';
+  });
+
+  ipcRenderer.on('update-found', (e, d) => {
+    d = d || {};
+    if (d.current) vold.textContent = 'v' + d.current;
+    if (d.latest)  vnew.textContent = 'v' + d.latest;
+    vers.style.display = 'flex';
+    title.textContent = 'Updating Justice Launcher';
+    sub.textContent = 'A new version is ready. Downloading now…';
+  });
+
+  ipcRenderer.on('update-download-progress', (e, d) => {
+    d = d || {};
+    setState('downloading'); setIcon('down');
+    fill.className = 'fill';
+    const p = Math.max(0, Math.min(100, d.percent || 0));
+    fill.style.width = p.toFixed(1) + '%';
+    pct.textContent = p.toFixed(0) + '%';
+    const mb = b => (b / 1048576).toFixed(1);
+    const sp = d.speed ? mb(d.speed) + ' MB/s' : '';
+    status.textContent = mb(d.transferred || 0) + ' / ' + mb(d.total || 0) + ' MB' + (sp ? '   ·   ' + sp : '');
+  });
+
+  ipcRenderer.on('update-download-complete', () => {
+    setState('installing'); setIcon('down');
+    title.textContent = 'Installing update';
+    sub.textContent = 'Almost there — the launcher will restart automatically.';
+    status.textContent = 'Installing…'; pct.textContent = '100%';
+    fill.className = 'fill'; fill.style.width = '100%';
+  });
+
+  ipcRenderer.on('update-not-needed', () => {
+    setState('done'); setIcon('check'); mark.style.color = 'var(--green)';
+    title.textContent = "You're up to date";
+    sub.textContent = 'Launching Justice Launcher…';
+    status.textContent = ''; pct.textContent = '';
+  });
+
+  ipcRenderer.on('update-error', (e, d) => {
+    setState('error'); setIcon('x'); mark.style.color = 'var(--red)';
+    title.textContent = 'Update failed';
+    sub.textContent = 'The update could not be completed.';
+    errmsg.textContent = (d && d.message) || 'Something went wrong. Check your connection and try again.';
+  });
+
+  ipcRenderer.send('updater-ready');
+</script>
+</body>
+</html>

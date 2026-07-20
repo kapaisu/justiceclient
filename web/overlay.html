@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: transparent;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+
+    pointer-events: none;
+  }
+
+  #panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 340px;
+    max-width: 30vw;
+    background: rgba(6, 4, 16, 0.92);
+    border-left: 1px solid rgba(124, 58, 237, 0.45);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    box-shadow: -8px 0 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(124,58,237,0.15);
+    pointer-events: all;
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  #panel.visible {
+    transform: translateX(0);
+  }
+
+  #notif-area {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .overlay-notif {
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(6, 4, 16, 0.95);
+    border: 1px solid rgba(124, 58, 237, 0.4);
+    border-radius: 10px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    animation: notifSlideIn 0.25s ease;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .overlay-notif:hover { border-color: rgba(124, 58, 237, 0.7); transform: translateX(-4px); }
+  @keyframes notifSlideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes notifSlideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
+  .notif-av { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#4c1d95,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; flex-shrink:0; }
+  .notif-body { flex:1; min-width:0; }
+  .notif-name { font-size:12px; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .notif-msg { font-size:11px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .notif-close { width:18px; height:18px; border:none; background:transparent; color:#475569; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border-radius:4px; }
+  .notif-close:hover { background:rgba(255,255,255,.1); color:#e2e8f0; }
+
+  .panel-top {
+    height: 3px;
+    background: linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed);
+    flex-shrink: 0;
+  }
+
+  .panel-hdr {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 14px 9px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+
+  .panel-logo {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+  }
+
+  .panel-title { font-size: 13px; font-weight: 700; color: #e2e8f0; flex: 1; }
+  .panel-sub   { font-size: 10px; color: #64748b; }
+
+  .close-btn {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: transparent; border: none;
+    color: #475569; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .12s;
+  }
+  .close-btn:hover { background: rgba(248,113,113,.15); color: #f87171; }
+
+  .friends-tabs {
+    display: flex;
+    padding: 8px 10px 0;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .ftab {
+    flex: 1; padding: 5px 6px;
+    border-radius: 7px; border: none;
+    background: transparent;
+    color: #64748b; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all .12s;
+    letter-spacing: .01em;
+  }
+  .ftab.on { background: rgba(124,58,237,.2); color: #a78bfa; }
+  .ftab:not(.on):hover { background: rgba(255,255,255,.05); color: #94a3b8; }
+
+  #friends-list {
+    flex: 1; overflow-y: auto; padding: 6px 8px;
+  }
+  #friends-list::-webkit-scrollbar { width: 3px; }
+  #friends-list::-webkit-scrollbar-thumb { background: rgba(124,58,237,.3); border-radius: 2px; }
+
+  .friend-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 8px; border-radius: 9px;
+    cursor: pointer; transition: background .1s;
+    margin-bottom: 2px;
+  }
+  .friend-row:hover { background: rgba(255,255,255,.05); }
+  .friend-row.active-chat { background: rgba(124,58,237,.15); }
+
+  .f-av {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+    position: relative;
+  }
+  .f-dot {
+    position: absolute; bottom: -1px; right: -1px;
+    width: 9px; height: 9px; border-radius: 50%;
+    border: 2px solid rgba(6,4,16,.88);
+    background: #475569;
+  }
+  .f-dot.online { background: #4ade80; }
+  .f-dot.ingame { background: #a78bfa; }
+
+  .f-info { flex: 1; min-width: 0; }
+  .f-name { font-size: 12px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .f-sub  { font-size: 10px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+
+  .f-unread {
+    min-width: 18px; height: 18px; border-radius: 9px;
+    background: #7c3aed; color: #fff;
+    font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px; flex-shrink: 0;
+  }
+
+  .empty-msg {
+    text-align: center; padding: 30px 16px;
+    font-size: 12px; color: #334155; line-height: 1.6;
+  }
+
+  #chat-view {
+    display: none; flex-direction: column; flex: 1; overflow: hidden;
+  }
+
+  .chat-hdr {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.06);
+    flex-shrink: 0;
+  }
+  .back-btn {
+    width: 24px; height: 24px; border-radius: 6px; border: none;
+    background: rgba(255,255,255,.05); color: #94a3b8;
+    font-size: 13px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all .12s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { background: rgba(255,255,255,.1); color: #e2e8f0; }
+
+  .chat-hdr-name { font-size: 12.5px; font-weight: 700; color: #e2e8f0; flex: 1; }
+  .chat-hdr-sub  { font-size: 10px; color: #475569; }
+
+  .chat-msgs {
+    flex: 1; overflow-y: auto; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .chat-msgs::-webkit-scrollbar { width: 3px; }
+  .chat-msgs::-webkit-scrollbar-thumb { background: rgba(124,58,237,.3); border-radius: 2px; }
+
+  .cmsg { display: flex; flex-direction: column; max-width: 85%; }
+  .cmsg.me    { align-self: flex-end; align-items: flex-end; }
+  .cmsg.them  { align-self: flex-start; }
+
+  .cbubble {
+    padding: 6px 10px; border-radius: 10px;
+    font-size: 12px; line-height: 1.45;
+    word-break: break-word; color: #f1f5f9;
+  }
+  .cmsg.me   .cbubble { background: #7c3aed; border-radius: 10px 10px 3px 10px; }
+  .cmsg.them .cbubble { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.08); border-radius: 10px 10px 10px 3px; }
+
+  .cts { font-size: 9.5px; color: #334155; margin-top: 2px; padding: 0 2px; }
+
+  .typing-row {
+    display: none; align-items: center; gap: 6px;
+    padding: 4px 12px; font-size: 10px; color: #475569;
+  }
+  .typing-row.on { display: flex; }
+  .tdots { display: flex; gap: 2px; }
+  .tdot  { width: 4px; height: 4px; border-radius: 50%; background: #475569; animation: td 1.2s infinite; }
+  .tdot:nth-child(2) { animation-delay:.2s; } .tdot:nth-child(3) { animation-delay:.4s; }
+  @keyframes td { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-3px)} }
+
+  .chat-input-row {
+    display: flex; gap: 7px; align-items: flex-end;
+    padding: 9px 10px; border-top: 1px solid rgba(255,255,255,.06);
+    flex-shrink: 0;
+  }
+  .chat-inp {
+    flex: 1; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.06);
+    color: #e2e8f0; font-size: 12px; font-family: inherit;
+    resize: none; outline: none; max-height: 80px;
+    transition: border-color .12s;
+  }
+  .chat-inp:focus { border-color: rgba(124,58,237,.6); }
+  .chat-inp::placeholder { color: #334155; }
+  .send-btn {
+    width: 30px; height: 30px; border-radius: 8px; border: none;
+    background: #7c3aed; color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .12s; flex-shrink: 0;
+  }
+  .send-btn:hover { background: #6d28d9; }
+
+  .hint-bar {
+    padding: 5px 14px 8px;
+    font-size: 9.5px; color: #1e293b;
+    text-align: center; flex-shrink: 0;
+  }
+  .hint-bar span { color: #334155; }
+</style>
+</head>
+<body>
+
+<div id="notif-area"></div>
+
+<div id="panel">
+  <div class="panel-top"></div>
+
+  <div class="panel-hdr">
+    <div class="panel-logo">J</div>
+    <div style="flex:1">
+      <div class="panel-title">Justice Chat</div>
+    </div>
+    <button class="close-btn" onclick="hidePanel()" title="Close (Right Shift)">✕</button>
+  </div>
+
+  <div id="friends-view" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div class="friends-tabs">
+      <button class="ftab on" id="tab-online" onclick="setTab('online')">Online</button>
+      <button class="ftab" id="tab-all" onclick="setTab('all')">All</button>
+      <button class="ftab" id="tab-ingame" onclick="setTab('ingame')">In Game</button>
+    </div>
+    <div id="friends-list"></div>
+    <div class="hint-bar">F9 to toggle · <span id="online-count">0 online</span></div>
+  </div>
+
+  <div id="chat-view">
+    <div class="chat-hdr">
+      <button class="back-btn" onclick="backToFriends()">←</button>
+      <div style="flex:1;min-width:0">
+        <div class="chat-hdr-name" id="chat-hdr-name">—</div>
+        <div class="chat-hdr-sub" id="chat-hdr-sub">offline</div>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs"></div>
+    <div class="typing-row" id="typing-row">
+      <div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+      <span id="typing-name">typing…</span>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-inp" id="chat-inp" placeholder="Message…" rows="1"
+        onkeydown="onKey(event)" oninput="onTyping();autoResize(this)"></textarea>
+      <button class="send-btn" onclick="send()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="hint-bar">F9 to toggle overlay</div>
+  </div>
+</div>
+
+<script>const { ipcRenderer } = require('electron');
+let friends   = [];
+let activeTab = 'online';
+let activeFriend = null;
+let pollTimer = null;
+let typingTimer = null;
+let knownMsgIds = new Set();
+ipcRenderer.on('overlay-friends', (_, data) => {
+  friends = data.friends || [];
+  renderFriends();
+});
+ipcRenderer.on('overlay-new-message', (_, msg) => {
+  if (activeFriend && (msg.from_id == activeFriend.id || msg.to_id == activeFriend.id)) {
+    appendMsg(msg.from_id == activeFriend.id, msg.content, msg.created_at, msg.id);
+  }
+});
+function showPanel() {
+  document.getElementById('panel').classList.add('visible');
+  ipcRenderer.send('overlay-enable-mouse');
+  startPoll();
+}
+function hidePanel() {
+  document.getElementById('panel').classList.remove('visible');
+  ipcRenderer.send('overlay-disable-mouse');
+  stopPoll();
+}
+function setTab(t) {
+  activeTab = t;
+  ['online','all','ingame'].forEach(id => {
+    document.getElementById('tab-' + id).classList.toggle('on', id === t);
+  });
+  renderFriends();
+}
+function renderFriends() {
+  const list = document.getElementById('friends-list');
+  let filtered = friends;
+  if (activeTab === 'online') filtered = friends.filter(f => f.status && f.status !== 'offline');
+  if (activeTab === 'ingame') filtered = friends.filter(f => f.status === 'in-game');
+  const online = friends.filter(f => f.status && f.status !== 'offline').length;
+  document.getElementById('online-count').textContent = online + ' online';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-msg">' + (activeTab === 'online' ? 'No friends online' : activeTab === 'ingame' ? 'No friends in game' : 'No friends yet') + '</div>';
+    return;
+  }
+  list.innerHTML = '';
+  filtered.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'friend-row' + (activeFriend?.id === f.id ? ' active-chat' : '');
+    row.onclick = () => openChat(f);
+    const dotClass = f.status === 'in-game' ? 'ingame' : (f.status && f.status !== 'offline' ? 'online' : '');
+    const sub = f.status === 'in-game' ? '🎮 ' + (f.gameVersion || 'Minecraft') : (f.status || 'offline');
+    row.innerHTML = `
+      <div class="f-av">${esc(f.username[0].toUpperCase())}<div class="f-dot ${dotClass}"></div></div>
+      <div class="f-info">
+        <div class="f-name">${esc(f.username)}</div>
+        <div class="f-sub">${esc(sub)}</div>
+      </div>
+      ${f._unread ? `<div class="f-unread">${f._unread}</div>` : ''}
+    `;
+    list.appendChild(row);
+  });
+}
+async function openChat(f) {
+  activeFriend = f;
+  f._unread = 0;
+  renderFriends();
+  document.getElementById('friends-view').style.display = 'none';
+  const cv = document.getElementById('chat-view');
+  cv.style.display = 'flex';
+  document.getElementById('chat-hdr-name').textContent = f.username;
+  const sub = f.status === 'in-game' ? '🎮 ' + (f.gameVersion || 'Minecraft') : (f.status || 'offline');
+  document.getElementById('chat-hdr-sub').textContent = sub;
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML = '<div style="text-align:center;padding:20px;color:#334155;font-size:11px">Loading…</div>';
+  knownMsgIds = new Set();
+  const r = await ipcRenderer.invoke('overlay-fetch-messages', { userId: f.id, limit: 60 });
+  msgs.innerHTML = '';
+  (r.messages || []).forEach(m => {
+    knownMsgIds.add(m.id);
+    appendMsg(m.from_id == f.id, m.content, m.created_at, m.id);
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+  document.getElementById('chat-inp').focus();
+}
+function backToFriends() {
+  activeFriend = null;
+  document.getElementById('chat-view').style.display = 'none';
+  document.getElementById('friends-view').style.display = 'flex';
+  renderFriends();
+}
+function appendMsg(isTheirs, content, ts, id) {
+  const msgs = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'cmsg ' + (isTheirs ? 'them' : 'me');
+  if (id) { d.dataset.id = id; knownMsgIds.add(id); }
+  const time = ts ? new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+  d.innerHTML = `<div class="cbubble">${esc(content)}</div><div class="cts">${time}</div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+async function send() {
+  if (!activeFriend) return;
+  const inp = document.getElementById('chat-inp');
+  const content = inp.value.trim();
+  if (!content) return;
+  inp.value = ''; inp.style.height = '';
+  const msgs = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'cmsg me';
+  d.dataset.pending = '1';
+  d.dataset.ts = new Date().toISOString();
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  d.innerHTML = `<div class="cbubble">${esc(content)}</div><div class="cts">${time}</div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  const r = await ipcRenderer.invoke('overlay-send-message', { userId: activeFriend.id, content });
+  if (r?.message?.id) {
+    d.dataset.id = r.message.id;
+    delete d.dataset.pending;
+    knownMsgIds.add(r.message.id);
+  }
+}
+async function onTyping() {
+  if (!activeFriend) return;
+  clearTimeout(typingTimer);
+  await ipcRenderer.invoke('overlay-typing', { userId: activeFriend.id });
+  typingTimer = setTimeout(() => {}, 3000);
+}
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+}
+function startPoll() {
+  stopPoll();
+  pollTimer = setInterval(async () => {
+    const fr = await ipcRenderer.invoke('overlay-fetch-friends');
+    if (fr?.friends) {
+      const unreadMap = {};
+      friends.forEach(f => { if (f._unread) unreadMap[f.id] = f._unread; });
+      friends = fr.friends;
+      friends.forEach(f => { if (unreadMap[f.id]) f._unread = unreadMap[f.id]; });
+      renderFriends();
+    }
+    if (activeFriend) {
+      const maxId = knownMsgIds.size ? Math.max(...knownMsgIds) : 0;
+      const r = await ipcRenderer.invoke('overlay-fetch-messages', { userId: activeFriend.id, after: maxId });
+      (r?.messages || []).forEach(m => {
+        if (knownMsgIds.has(m.id)) return;
+        knownMsgIds.add(m.id);
+        appendMsg(m.from_id == activeFriend.id, m.content, m.created_at, m.id);
+      });
+    }
+    if (activeFriend) {
+      const t = await ipcRenderer.invoke('overlay-check-typing', { userId: activeFriend.id });
+      const row = document.getElementById('typing-row');
+      document.getElementById('typing-name').textContent = activeFriend.username + ' is typing…';
+      row.classList.toggle('on', !!t?.typing);
+    }
+  }, 1500);
+}
+function stopPoll() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
+}
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+ipcRenderer.on('overlay-toggle', () => {
+  const panel = document.getElementById('panel');
+  if (panel.classList.contains('visible')) hidePanel();
+  else showPanel();
+});
+
+ipcRenderer.on('overlay-chat-notification', (_, data) => {
+  showOverlayNotif(data.from, data.message, data.fromId);
+});
+
+function showOverlayNotif(fromUser, message, fromId) {
+  const area = document.getElementById('notif-area');
+  if (!area) return;
+
+  while (area.children.length >= 3) area.removeChild(area.firstChild);
+  const notif = document.createElement('div');
+  notif.className = 'overlay-notif';
+  notif.onclick = () => {
+    notif.remove();
+
+    const f = friends.find(ff => ff.id == fromId);
+    if (f) {
+      const panel = document.getElementById('panel');
+      if (!panel.classList.contains('visible')) showPanel();
+      openChat(f);
+    }
+  };
+  notif.innerHTML = `
+    <div class="notif-av">${esc((fromUser||'?')[0].toUpperCase())}</div>
+    <div class="notif-body">
+      <div class="notif-name">${esc(fromUser)}</div>
+      <div class="notif-msg">${esc(message)}</div>
+    </div>
+    <button class="notif-close" onclick="event.stopPropagation();this.closest('.overlay-notif').remove()">✕</button>
+  `;
+  area.appendChild(notif);
+
+  setTimeout(() => {
+    if (notif.isConnected) {
+      notif.style.animation = 'notifSlideOut .2s ease forwards';
+      setTimeout(() => notif.remove(), 200);
+    }
+  }, 6000);
+}
+</script>
+</body>
+</html>

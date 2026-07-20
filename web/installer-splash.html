@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Justice Launcher — Installing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg0:#08060e;--bg1:#0e0b18;--bg2:#141020;--bg3:#1c1730;
+      --border:rgba(139,92,246,0.12);--border-hi:rgba(139,92,246,0.35);
+      --purple:#a78bfa;--purple-hi:#c4b5fd;--purple-dim:#7c3aed;
+      --accent:#e879f9;--green:#4ade80;--red:#f87171;
+      --t1:#ffffff;--t2:#e2e0e7;--t3:#a09aad;--t4:#6b6578;
+      --glass-bg:rgba(20,10,30,0.6);
+    }
+    html,body{height:100%;overflow:hidden}
+    body{
+      font-family:'Space Grotesk',sans-serif;
+      background:var(--bg0);color:var(--t1);
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      user-select:none;
+    }
+    .bg-gradient{
+      position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse 80% 60% at 50% 40%, rgba(124,58,237,0.15), transparent 70%),
+                 radial-gradient(ellipse 60% 50% at 20% 80%, rgba(232,121,249,0.08), transparent 60%),
+                 var(--bg0);
+    }
+    .particles{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+    .particle{
+      position:absolute;width:2px;height:2px;
+      background:var(--purple);border-radius:50%;opacity:0;
+      animation:float-up linear infinite;
+    }
+    @keyframes float-up{
+      0%{transform:translateY(100vh) scale(0);opacity:0}
+      10%{opacity:0.5}
+      90%{opacity:0.5}
+      100%{transform:translateY(-10vh) scale(1);opacity:0}
+    }
+
+    #titlebar{
+      position:fixed;top:0;left:0;right:0;
+      height:36px;-webkit-app-region:drag;
+      z-index:100;
+    }
+
+    .installer-container{
+      position:relative;z-index:1;
+      display:flex;flex-direction:column;
+      align-items:center;gap:28px;
+      padding:40px;max-width:460px;width:100%;
+    }
+
+    .logo-wrap{position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center}
+    .logo-gem{
+      width:54px;height:54px;
+      background:linear-gradient(135deg,var(--purple-dim),var(--accent));
+      clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);
+      box-shadow:0 0 40px rgba(167,139,250,.5);
+      animation:gem-breathe 3s ease-in-out infinite;
+      z-index:2;position:relative;
+    }
+    @keyframes gem-breathe{
+      0%,100%{transform:scale(1);filter:brightness(1)}
+      50%{transform:scale(1.06);filter:brightness(1.2)}
+    }
+    .logo-ring{
+      position:absolute;inset:-6px;
+      border:2px solid rgba(167,139,250,0.15);border-radius:50%;
+      animation:ring-spin 6s linear infinite;
+    }
+    .logo-ring::before{
+      content:'';position:absolute;top:-3px;left:50%;
+      width:6px;height:6px;background:var(--purple);border-radius:50%;
+      transform:translateX(-50%);box-shadow:0 0 10px var(--purple);
+    }
+    @keyframes ring-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+    .install-title{
+      font-size:26px;font-weight:800;letter-spacing:.04em;
+      background:linear-gradient(90deg,var(--purple-hi),var(--accent));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      text-align:center;
+    }
+    .install-subtitle{font-size:14px;color:var(--t3);text-align:center;margin-top:-12px;line-height:1.5}
+
+    .progress-wrap{width:100%;display:flex;flex-direction:column;gap:8px}
+    .progress-bar-outer{
+      width:100%;height:6px;background:rgba(139,92,246,0.1);
+      border-radius:10px;overflow:hidden;border:1px solid var(--border);
+    }
+    .progress-bar-inner{
+      height:100%;width:0%;
+      background:linear-gradient(90deg,var(--purple-dim),var(--accent));
+      border-radius:10px;transition:width 0.3s ease;
+      box-shadow:0 0 12px rgba(167,139,250,.3);
+    }
+    .progress-bar-inner.indeterminate{
+      width:30% !important;
+      animation:indeterminate 1.5s ease-in-out infinite;
+    }
+    @keyframes indeterminate{
+      0%{margin-left:0%;width:30%}
+      50%{margin-left:35%;width:40%}
+      100%{margin-left:70%;width:30%}
+    }
+    .progress-bar-inner::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+      animation:shimmer 1.5s ease-in-out infinite;
+    }
+    @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+    .progress-info{display:flex;justify-content:space-between;align-items:center}
+    .progress-status{font-size:12px;color:var(--t3);font-weight:500}
+    .progress-percent{font-size:12px;color:var(--purple-hi);font-weight:700;font-variant-numeric:tabular-nums}
+
+    .state-complete .logo-gem{
+      animation:none;
+      background:linear-gradient(135deg,#16a34a,#4ade80);
+      box-shadow:0 0 50px rgba(74,222,128,.4);
+    }
+    .state-complete .progress-bar-inner{width:100% !important;background:linear-gradient(90deg,#16a34a,#4ade80)}
+
+    .steps{
+      display:flex;flex-direction:column;gap:6px;
+      width:100%;padding:12px 16px;
+      background:rgba(255,255,255,0.02);
+      border:1px solid var(--border);border-radius:10px;
+      font-size:12px;color:var(--t4);
+    }
+    .step{display:flex;align-items:center;gap:8px;padding:2px 0;transition:color .3s}
+    .step.active{color:var(--t2)}
+    .step.done{color:var(--green)}
+    .step-icon{width:16px;text-align:center;font-size:10px}
+    .step.done .step-icon::before{content:'✓'}
+    .step.active .step-icon::before{content:'›';font-size:14px;color:var(--purple)}
+    .step.pending .step-icon::before{content:'○';font-size:8px}
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div class="particles" id="particles"></div>
+  <div id="titlebar"></div>
+
+  <div class="installer-container" id="installer">
+    <div class="logo-wrap">
+      <div class="logo-ring"></div>
+      <div class="logo-gem"></div>
+    </div>
+
+    <h1 class="install-title" id="install-title">Installing Justice Launcher</h1>
+    <p class="install-subtitle" id="install-subtitle">Setting up your new Minecraft experience...</p>
+
+    <div class="progress-wrap">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner indeterminate" id="progress-bar"></div>
+      </div>
+      <div class="progress-info">
+        <span class="progress-status" id="progress-status">Preparing...</span>
+        <span class="progress-percent" id="progress-percent"></span>
+      </div>
+    </div>
+
+    <div class="steps" id="steps">
+      <div class="step active" id="step-extract">
+        <span class="step-icon"></span>
+        <span>Extracting files</span>
+      </div>
+      <div class="step pending" id="step-shortcuts">
+        <span class="step-icon"></span>
+        <span>Creating shortcuts</span>
+      </div>
+      <div class="step pending" id="step-registry">
+        <span class="step-icon"></span>
+        <span>Registering application</span>
+      </div>
+      <div class="step pending" id="step-finish">
+        <span class="step-icon"></span>
+        <span>Finishing up</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    const pc = document.getElementById('particles');
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.animationDelay = (Math.random() * 8) + 's';
+      p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+      p.style.background = Math.random() > 0.5 ? 'var(--purple)' : 'var(--accent)';
+      pc.appendChild(p);
+    }
+
+    const steps = ['step-extract', 'step-shortcuts', 'step-registry', 'step-finish'];
+    const bar = document.getElementById('progress-bar');
+    const status = document.getElementById('progress-status');
+    const percent = document.getElementById('progress-percent');
+    const title = document.getElementById('install-title');
+    const subtitle = document.getElementById('install-subtitle');
+    const container = document.getElementById('installer');
+
+    function setStep(idx) {
+      steps.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (i < idx) { el.className = 'step done'; }
+        else if (i === idx) { el.className = 'step active'; }
+        else { el.className = 'step pending'; }
+      });
+      const pct = Math.round(((idx + 1) / steps.length) * 100);
+      bar.className = 'progress-bar-inner';
+      bar.style.width = pct + '%';
+      percent.textContent = pct + '%';
+    }
+
+    function setComplete() {
+      container.className = 'installer-container state-complete';
+      title.textContent = 'Installation Complete!';
+      subtitle.textContent = 'Justice Launcher is ready. Launching now...';
+      status.textContent = 'Done!';
+      percent.textContent = '100%';
+      bar.className = 'progress-bar-inner';
+      bar.style.width = '100%';
+      steps.forEach(id => document.getElementById(id).className = 'step done');
+    }
+
+    window.setStep = setStep;
+    window.setComplete = setComplete;
+
+    if (typeof window.__NSIS__ === 'undefined') {
+      let currentStep = 0;
+      const interval = setInterval(() => {
+        if (currentStep < steps.length) {
+          setStep(currentStep);
+          status.textContent = document.getElementById(steps[currentStep]).querySelector('span:last-child').textContent + '...';
+          currentStep++;
+        } else {
+          clearInterval(interval);
+          setComplete();
+        }
+      }, 1500);
+    }
+  </script>
+</body>
+</html>
